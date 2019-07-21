@@ -599,18 +599,37 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool generate_genesis_block(
       block& bl
-    , std::string const & genesis_tx
     , uint32_t nonce
     )
   {
     //genesis block
     bl = boost::value_initialized<block>();
 
-    blobdata tx_bl;
-    bool r = string_tools::parse_hexstr_to_binbuff(genesis_tx, tx_bl);
-    CHECK_AND_ASSERT_MES(r, false, "failed to parse coinbase tx from hard coded blob");
-    r = parse_and_validate_tx_from_blob(tx_bl, bl.miner_tx);
-    CHECK_AND_ASSERT_MES(r, false, "failed to parse coinbase tx from hard coded blob");
+    transaction tx;
+    tx.vin.clear();
+    tx.vout.clear();
+    tx.extra.clear();
+    add_tx_pub_key_to_extra(tx, null_pkey);
+
+    txin_gen in;
+    in.height = 0;
+    uint64_t block_reward;
+    get_block_reward(0, 0, 0, block_reward, 1);
+
+    tx_out out;
+    out.amount = block_reward;
+    out.target = null_pkey;
+    tx.vout.push_back(out);
+
+    tx.version = 2;
+
+    //lock
+    tx.unlock_time = 60;
+    tx.vin.push_back(in);
+
+    tx.invalidate_hashes();
+
+    bl.miner_tx = tx;
     bl.major_version = CURRENT_BLOCK_MAJOR_VERSION;
     bl.minor_version = CURRENT_BLOCK_MINOR_VERSION;
     bl.timestamp = 0;

@@ -368,7 +368,7 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
     MINFO("Blockchain not loaded, generating genesis block.");
     block bl;
     block_verification_context bvc = boost::value_initialized<block_verification_context>();
-    generate_genesis_block(bl, get_config(m_nettype).GENESIS_TX, get_config(m_nettype).GENESIS_NONCE);
+    generate_genesis_block(bl, get_config(m_nettype).GENESIS_NONCE);
     db_wtxn_guard wtxn_guard(m_db);
     add_new_block(bl, bvc);
     CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "Failed to add genesis block to blockchain");
@@ -3727,6 +3727,7 @@ leave:
       uint64_t long_term_block_weight = get_next_long_term_block_weight(block_weight);
       cryptonote::blobdata bd = cryptonote::block_to_blob(bl);
       new_height = m_db->add_block(std::make_pair(std::move(bl), std::move(bd)), block_weight, long_term_block_weight, cumulative_difficulty, already_generated_coins, txs);
+
     }
     catch (const KEY_IMAGE_EXISTS& e)
     {
@@ -3821,7 +3822,7 @@ uint64_t Blockchain::get_next_long_term_block_weight(uint64_t block_weight) cons
   const uint64_t nblocks = std::min<uint64_t>(m_long_term_block_weights_window, db_height);
 
   const uint8_t hf_version = get_current_hard_fork_version();
-  if (hf_version < HF_VERSION_LONG_TERM_BLOCK_WEIGHT)
+  if (db_height == 0 || hf_version < HF_VERSION_LONG_TERM_BLOCK_WEIGHT)
     return block_weight;
 
   uint64_t long_term_median = get_long_term_block_weight_median(db_height - nblocks, nblocks);
